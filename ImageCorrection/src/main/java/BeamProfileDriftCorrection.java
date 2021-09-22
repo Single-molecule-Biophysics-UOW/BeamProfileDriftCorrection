@@ -34,6 +34,8 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	float darkframe;
 	@Parameter(label = "sigma")
 	double sigma;
+	@Parameter(label = "stationary Beamprofile?")
+	boolean stationaryProfile = true;
 	@Parameter
 	Logger logger;
 
@@ -56,6 +58,10 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	public BeamProfileDriftCorrection(final Context context, ImagePlus in, double s, float df) {
 		this(context, in, s);
 		darkframe = df;
+	}
+	public BeamProfileDriftCorrection(final Context context, ImagePlus in, double s, float df, boolean sp ) {
+			this(context, in, s, df);
+			stationaryProfile = sp;
 	}	
 	public void setInput(ImagePlus in) {
 		input = in;
@@ -75,6 +81,12 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	public float getDarkframe() {
 		return darkframe; 
 	}
+	public void setStationaryProfile(boolean sp) {
+		stationaryProfile = sp;
+	}
+	public boolean getStationaryProfile() {
+		return stationaryProfile;
+	}
 	public Img<FloatType> getResult() {
 		return resultImg;
 	}
@@ -88,7 +100,7 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	public void run() {
 		long startRun = System.currentTimeMillis();
 		Context con = ops.getContext();
-		// ImgPlus dimensions are alwyas array with 5 elements: XYCZT
+		// ImgPlus dimensions are always array with 5 elements: XYCZT
 		// Img dimensions are <=5 in same order, if time exists it is last!
 		int[] dims = input.getDimensions();
 		int nFrames = dims[4];
@@ -100,8 +112,9 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		// blur etc is then corrected already.
 		RandomAccessibleInterval<FloatType> corr_img = util.subtract(img, darkframe);
 		// now do z projection, if no frames, no projection necessary
+		//if the beamProfile is not stationary over time there should be a projection as well.
 		Img<FloatType> proj_corr_Img;
-		if (nFrames > 1) {
+		if (nFrames > 1 & stationaryProfile == true) {
 			proj_corr_Img = util.zprojOpFunction(corr_img);
 		} else {
 			proj_corr_Img = ImgBuilder(corr_img);
