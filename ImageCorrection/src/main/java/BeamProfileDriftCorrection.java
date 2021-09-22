@@ -127,7 +127,6 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		// normalize the blurred image:
 		util.normMultiChannel2(blurImg, nChannels);
 		// create new image for result
-		ImageJFunctions.show(blurImg);
 		ArrayImgFactory<FloatType> fac = new ArrayImgFactory<FloatType>(corr_img.randomAccess().get());
 		RandomAccessibleInterval<FloatType> div_output = fac.create(img.dimensionsAsLongArray());
 		RandomAccessibleInterval<FloatType> beamProfileCorr = util.divideStackbyStack(corr_img, blurImg, div_output,nFrames);
