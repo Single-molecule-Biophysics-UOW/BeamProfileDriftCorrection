@@ -1,1 +1,1 @@
-{"class":"classes.BeamProfileDriftCorrection","values":{"headless":true,"menuPath":"Plugins>Corrections>Beamprofile and drift Correction","type":"org.scijava.command.Command"}}{"class":"classes.interferenceCorr","values":{"headless":true,"menuPath":"Plugins>Corrections>Interference BeamProfile","type":"org.scijava.command.Command"}}
+{"class":"classes.BeamProfileDriftCorrection","values":{"headless":true,"menuPath":"Plugins>Corrections>Beamprofile and drift Correction","type":"org.scijava.command.Command"}}

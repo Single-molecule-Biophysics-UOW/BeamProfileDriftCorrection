@@ -2,6 +2,8 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
+import java.util.StringJoiner;
 
 import org.scijava.Context;
 import org.scijava.log.LogService;
@@ -18,14 +20,19 @@ import net.imglib2.algorithm.stats.Normalize;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.loops.ListUtils;
 import net.imglib2.loops.LoopBuilder;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.ComplexType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.real.FloatType;
+import net.imglib2.util.Intervals;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
+import net.imglib2.Dimensions;
+import net.imglib2.Interval;
+
 public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
 	@Parameter		//do they need to be parameters? or just fields?
 	OpService ops;
@@ -126,27 +133,51 @@ public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
     		}    	
     	}
     }
+	private boolean checkDimensions(RandomAccessibleInterval< ? > image1, RandomAccessibleInterval< ? > image2)
+	{			
+		final long[] dims1 = Intervals.dimensionsAsLongArray( image1 );
+		final long[] dims2 = Intervals.dimensionsAsLongArray( image2 );
+		
+		final boolean equal = Arrays.equals( dims1, dims2 );
+		if ( !equal ){			
+			//throw new IllegalArgumentException( "LoopBuilder, image dimensions do not match: " + Arrays.toString(dims1) + Arrays.toString(dims2) );
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
     public RandomAccessibleInterval<FloatType> divideStackbyStack(final RandomAccessibleInterval<FloatType> input1,final RandomAccessibleInterval<FloatType> input2, RandomAccessibleInterval<FloatType> output, int nFrames) {
     	//first see if there are any frames at all, if not the dims should already match.
     	if (nFrames == 1) {
     		divideLoopBuilder(input1,input2,output);    		
     	}
     	else {
-    	//this time I create a View of the blurred that has the same dimaneison as the image to correct!
-    	//the colors should already be the same, so just stack it nFrames times!   	
-    	ArrayList<RandomAccessibleInterval<FloatType>>FrameList = new ArrayList<RandomAccessibleInterval<FloatType>>();	
-    	for (int i=0; i<nFrames; i++) {
-    		FrameList.add(input2);
-    	}
-    	//create a big View:
-    	RandomAccessibleInterval<FloatType> StackView = Views.stack(FrameList);
-    	//and do the division using LoopBuilder:
-    	divideLoopBuilder(input1,StackView,output);
+    		//two cases: 1. the blur was done on the z-projection or 2 . on every slice.
+    		//1. create stack of blurs to match dimensions
+    		//2. dimensions should already match do nothing here:
+    		//check which is true:
+    		if (checkDimensions(input1,input2)==true) {	//case 1.
+    			divideLoopBuilder(input1,input2,output);
+    		}
+    		else {
+    			//this time I create a View of the blurred that has the same dimension as the image to correct!
+    			//the colors should already be the same, so just stack it nFrames times!   	
+    			ArrayList<RandomAccessibleInterval<FloatType>>FrameList = new ArrayList<RandomAccessibleInterval<FloatType>>();	
+    			for (int i=0; i<nFrames; i++) {
+    				FrameList.add(input2);
+    			}
+    			//create a big View:
+    			RandomAccessibleInterval<FloatType> StackView = Views.stack(FrameList);
+    			//and do the division using LoopBuilder:
+    			divideLoopBuilder(input1,StackView,output);
+    		}
     	}
     	return output;
     }
     public void divideLoopBuilder(final RandomAccessibleInterval<FloatType> slice1, final RandomAccessibleInterval<FloatType> slice2, RandomAccessibleInterval<FloatType> output){    
     	//TODO: call LoopBuilder with multithreading?
+    	
     	LoopBuilder.setImages(output, slice1, slice2).forEachPixel(
     	    (o, a, b) -> {
     	        o.set(a.getRealFloat() / b.getRealFloat());

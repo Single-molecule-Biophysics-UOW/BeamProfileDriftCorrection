@@ -1,3 +1,4 @@
+import java.io.File;
 import java.util.ArrayList;
 
 import org.scijava.Context;
@@ -9,11 +10,13 @@ import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 
 import ij.ImagePlus;
+import net.imagej.ImageJ;
 import net.imagej.ops.OpService;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.loops.LoopBuilder;
 import net.imglib2.type.NativeType;
 import net.imglib2.type.numeric.RealType;
@@ -115,7 +118,7 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		//if the beamProfile is not stationary over time there should be a projection as well.
 		Img<FloatType> proj_corr_Img;
 		if (nFrames > 1 & stationaryProfile == true) {
-			proj_corr_Img = util.zprojOpFunction(corr_img);
+			proj_corr_Img = util.zprojOpFunction(corr_img);		
 		} else {
 			proj_corr_Img = ImgBuilder(corr_img);
 		}
@@ -124,6 +127,7 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		// normalize the blurred image:
 		util.normMultiChannel2(blurImg, nChannels);
 		// create new image for result
+		ImageJFunctions.show(blurImg);
 		ArrayImgFactory<FloatType> fac = new ArrayImgFactory<FloatType>(corr_img.randomAccess().get());
 		RandomAccessibleInterval<FloatType> div_output = fac.create(img.dimensionsAsLongArray());
 		RandomAccessibleInterval<FloatType> beamProfileCorr = util.divideStackbyStack(corr_img, blurImg, div_output,nFrames);
@@ -138,4 +142,8 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 			result = beamProfileCorr;
 		}
 	}
+
 }
+	
+	
+
