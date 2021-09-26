@@ -41,6 +41,7 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	boolean stationaryProfile = true;
 	@Parameter
 	Logger logger;
+	double maxShift = 20.0;
 
 	public BeamProfileDriftCorrection() {
 		
@@ -93,6 +94,12 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	public Img<FloatType> getResult() {
 		return resultImg;
 	}
+	public double getMaxShift() {
+		return maxShift;
+	}
+	public void setMaxShift(double ms) {
+		maxShift = ms;
+	}
 
 	public <T extends RealType<T> & NativeType<T>> Img<T> ImgBuilder(RandomAccessibleInterval<T> input) {
 		final Img<T> ImgOut = Util.getSuitableImgFactory(input, Util.getTypeFromInterval(input)).create(input);
@@ -134,7 +141,7 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		// now do drift correction, but only if there are actually frames:
 		if (nFrames > 1) {
 			DriftUtil dutil = new DriftUtil(con);
-			ArrayList<float[]> shifts = dutil.driftCorrStack(beamProfileCorr, nChannels, nFrames, 20.0);
+			ArrayList<float[]> shifts = dutil.driftCorrStack(beamProfileCorr, nChannels, nFrames, maxShift);
 			RandomAccessibleInterval<FloatType> driftCorr = dutil.shiftStack3D(beamProfileCorr, shifts, nChannels,nFrames);
 			resultImg = ImgBuilder(driftCorr);
 		} else {
