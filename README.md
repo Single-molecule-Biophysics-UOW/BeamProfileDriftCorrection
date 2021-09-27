@@ -9,4 +9,5 @@ Done!
 
 ## Scripting the plugin for batch-processing
 
+download BeamProfileDrift_batch.py, open it in fiji and enjoy!
 
