@@ -46,6 +46,5 @@ for f in files:
 		outName = "corr_"+f+"_series{:02d}".format(s)
 		ij_result = ijf.wrapUnsignedShort(result,"title")			#result is Imglib2 Img<FloatType>. Wrap in ij1 ImagePlus and convert to 16-bit
 		saveData(ij_result,outputFolder + outName)
-		if s>2:
-			break
+
 
