@@ -1,5 +1,8 @@
+package singleMoleculeBiophysics.ImageCorrections;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.scijava.Context;
 import org.scijava.ItemIO;
@@ -34,9 +37,9 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	@Parameter(type = ItemIO.OUTPUT, label = "resultImg")
 	private Img<FloatType> resultImg;
 	@Parameter(label = "darkframe")
-	float darkframe;
+	float darkframe = 2348;
 	@Parameter(label = "sigma")
-	double sigma;
+	double sigma = 25;
 	@Parameter(label = "stationary Beamprofile?")
 	boolean stationaryProfile = true;
 	@Parameter
@@ -109,14 +112,36 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	
 	public void run() {
 		long startRun = System.currentTimeMillis();
+		logger.info("start beamprofile and drift correction");
 		Context con = ops.getContext();
 		// ImgPlus dimensions are always array with 5 elements: XYCZT
 		// Img dimensions are <=5 in same order, if time exists it is last!
 		int[] dims = input.getDimensions();
 		int nFrames = dims[4];
+		int nSlices = dims[3];
 		int nChannels = dims[2];
-		logger.info("input:"+"frames:"+nFrames+"channels:"+nChannels);
-		BeamProfileUtil util = new BeamProfileUtil(con);
+		logger.info(Arrays.toString(dims));
+		logger.info("frames:"+nFrames);
+		logger.info("slices:"+nSlices);
+		
+		//TODO Add some magic code here that cleans up the dimensions if they are wrong
+		
+		//if (nFrames == 1 & nSlices > 1){
+			//z and t are probably switched, through warning and switch back
+			//logger.warn("it appears like z and t-dimension is swapped. I t will be swapped for correction");
+			//nFrames = nSlices;
+		//	nSlices = 1;
+	//	}
+		//if (nFrames == 1 & nChannels > 3){
+			//z and t are probably switched, through warning and switch back
+		//	logger.warn("it appears like color and t-dimension is swapped. I t will be swapped for correction");
+		//	nFrames = nChannels;
+		//	nChannels = 1;
+		//}
+		
+		
+		
+		BeamProfileUtil<FloatType> util = new BeamProfileUtil<FloatType>(con);
 		final Img<T> img = ImagePlusAdapter.wrap(input);
 		// first I do the darkframeCorr, so I only do it on the whole stack once, the
 		// blur etc is then corrected already.
@@ -137,18 +162,20 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		ArrayImgFactory<FloatType> fac = new ArrayImgFactory<FloatType>(corr_img.randomAccess().get());
 		RandomAccessibleInterval<FloatType> div_output = fac.create(img.dimensionsAsLongArray());
 		RandomAccessibleInterval<FloatType> beamProfileCorr = util.divideStackbyStack(corr_img, blurImg, div_output,nFrames);
-		logger.info("correction took:" + (System.currentTimeMillis() - startRun) + "ms");
+		
 		// now do drift correction, but only if there are actually frames:
 		if (nFrames > 1) {
-			DriftUtil dutil = new DriftUtil(con);
+			//logger.info("start drift");
+			DriftUtil<FloatType> dutil = new DriftUtil<FloatType>(con);
 			ArrayList<float[]> shifts = dutil.driftCorrStack(beamProfileCorr, nChannels, nFrames, maxShift);
 			RandomAccessibleInterval<FloatType> driftCorr = dutil.shiftStack3D(beamProfileCorr, shifts, nChannels,nFrames);
 			resultImg = ImgBuilder(driftCorr);
 		} else {
+			//logger.info("no drift needed");
 			result = beamProfileCorr;
-		}
+		} 
+		logger.info("beamprofile and drift correction finished after" + (System.currentTimeMillis()-startRun));		
 	}
-
 }
 	
 	

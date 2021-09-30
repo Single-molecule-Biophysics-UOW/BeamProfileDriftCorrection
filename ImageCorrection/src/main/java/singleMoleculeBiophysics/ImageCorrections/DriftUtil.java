@@ -1,3 +1,4 @@
+package singleMoleculeBiophysics.ImageCorrections;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,6 +20,7 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.fft2.FFTConvolution;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.realtransform.AffineGet;
 import net.imglib2.realtransform.AffineRandomAccessible;
@@ -86,7 +88,6 @@ public class DriftUtil<T extends RealType<T> & NativeType<T>> {
 		net.imglib2.algorithm.fft2.FFTConvolution FFTConv = new FFTConvolution(reference,normslice0,new ArrayImgFactory<>(new ComplexDoubleType()),convService);			
 		long[] refDim = reference.dimensionsAsLongArray();
 		long[] kernelDim = normslice0.dimensionsAsLongArray();
-		logger.info("dimensions of img:"+Arrays.toString(refDim)+" dims of Kernel:"+Arrays.toString(kernelDim));
 			
         //now to do correlation complex-conjugate the FFT before multipliying in fourier domain easily done by:
      	FFTConv.setComputeComplexConjugate(true);
@@ -94,8 +95,13 @@ public class DriftUtil<T extends RealType<T> & NativeType<T>> {
      	FFTConv.setKeepImgFFT(true);	     	
         //calculate the correlation:
         FFTConv.convolve();
-		//now find the maximum of this first correlation (its the auto correlation)	        
-		Point refMax = findMaxLocation(reference);				
+		//now find the maximum of this first correlation (its the auto correlation)
+        //around the middle:
+        long radius = (long)filterRadius;
+        IterableInterval<T> cropRef = Views.interval( reference, 
+				new long[] { dim[0]/2-radius, dim[1]/2-radius}, 
+				new long[]{  dim[0]/2+radius, dim[1]/2+radius } );
+		Point refMax = findMaxLocation(cropRef);				
 		//loop through stack:
 		for (int i=1;i<nFrames;i++) {
 			//get the slice via view:
@@ -114,13 +120,18 @@ public class DriftUtil<T extends RealType<T> & NativeType<T>> {
 			FFTConv.setKernel(normslice);								
 			//and compute the new correlation
 			FFTConv.convolve();			
-			//now filter that:
-			double radius = filterRadius;
-			spatialCircleFilter(reference,radius);
+	
+	
+			//search for the maximum in the middle 2radius*2radius pixels
+			IterableInterval<T> cropRefNew = Views.interval( reference, 
+					new long[] { dim[0]/2-radius, dim[1]/2-radius}, 
+					new long[]{  dim[0]/2+radius, dim[1]/2+radius } );
+			//ImageJFunctions.show((RandomAccessibleInterval<T>)cropRef).setTitle("cropped");
 			//and find the maximum position
-			Point newMax = findMaxLocation(reference);												
-			//now calculate the shift vector:
+			Point newMax = findMaxLocation(cropRefNew);												
+			//now calculate the shift vector:			
 			float[] shiftVector = findShift(newMax,refMax);
+			
 			shiftList.add(shiftVector);
 			}
 
@@ -139,45 +150,7 @@ public class DriftUtil<T extends RealType<T> & NativeType<T>> {
 		}
 		return shift;		
 	}
-	private static <T extends RealType<T>, C extends ComplexType<C>> void spatialCircleFilter(
-			final RandomAccessibleInterval<T> input, final double radius)
-		{
-			
-			// Declare an array to hold the current position of the cursor.
-			int nDim = input.numDimensions();
-			final long[] pos = new long[nDim];
-
-			// Define origin as 0,0.
-			long[] dim = new long[nDim];
-			input.dimensions(dim);
-			final long[] origin = {dim[0]/2, dim[1]/2};
-
-			// Define a 2nd 'origin' at bottom left of image.
-			// This is a bit of a hack. We want to draw a circle around the origin,
-			// since the origin is at 0,0 - the circle will 'reflect' to the bottom.
-			//final long[] origin2 = {0, input.dimension(1)};
-
-			// Loop through all pixels.
-			final Cursor<T> cursor = Views.iterable(input).localizingCursor();
-			while (cursor.hasNext()) {
-				cursor.fwd();
-				cursor.localize(pos);
-
-				// Calculate distance from 0,0 and bottom left corner
-				// (so we can form the reflected semi-circle).
-				final double dist = Util.distance(origin, pos);
-				//final double dist2 = Util.distance(origin2, pos);
-
-				// If distance is above radius (cutoff frequency),
-				// set value of FFT to zero.
-				if (dist > radius)// && dist2 > radius)
-					cursor.get().setZero();
-			}
-			// Reverse the FFT.
-			//input = ops.create().img(fft, new FloatType());
-			
-			
-		}	
+	
 	private Point findMaxLocation(IterableInterval<T> input) {
 		Point locationMin = new Point( input.numDimensions() );
 		Point locationMax = new Point( input.numDimensions() );
@@ -238,7 +211,7 @@ public class DriftUtil<T extends RealType<T> & NativeType<T>> {
 		if(nChannels == 1){		       	    				
 			
 			
-			logger.info("stack has channels");
+			//logger.info("stack has channels");
 			
 			//loop through Stack:
 			//make array to hold the slices

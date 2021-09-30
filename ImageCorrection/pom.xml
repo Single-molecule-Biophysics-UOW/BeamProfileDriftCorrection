@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>singleMoleculeBiophysicsUOW</groupId>
   <artifactId>ImageCorrection</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0</version>
   <name>ImageCorrections</name>
   
   	<parent>
@@ -97,8 +97,7 @@
 		</dependency>
 <dependency>
     <groupId>net.imglib2</groupId>
-    <artifactId>imglib2-algorithm-gpl</artifactId>
-    <version>0.2.4</version>
+    <artifactId>imglib2-algorithm-gpl</artifactId> 
 </dependency>
 	
 			<dependency>

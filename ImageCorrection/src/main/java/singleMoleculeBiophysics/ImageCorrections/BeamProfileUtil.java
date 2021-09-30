@@ -1,3 +1,4 @@
+package singleMoleculeBiophysics.ImageCorrections;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +67,7 @@ public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
     	long[] dim0 = new long[slice0.numDimensions()];
     	slice0.dimensions(dim0);  	    	
     	Img<T> target = fac.create(dim0);	//now create result with correct dimensions.   	
-		UnaryComputerOp mean_op = Computers.unary(ops, Ops.Stats.Mean.class, RealType.class, Iterable.class);
+		UnaryComputerOp<Iterable, RealType> mean_op = Computers.unary(ops, Ops.Stats.Mean.class, RealType.class, Iterable.class);
     	ops.run("project",target,input,mean_op,Tindex);		   	
     	return target;    		
     }
@@ -178,7 +179,7 @@ public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
     public void divideLoopBuilder(final RandomAccessibleInterval<FloatType> slice1, final RandomAccessibleInterval<FloatType> slice2, RandomAccessibleInterval<FloatType> output){    
     	//TODO: call LoopBuilder with multithreading?
     	
-    	LoopBuilder.setImages(output, slice1, slice2).forEachPixel(
+    	LoopBuilder.setImages(output, slice1, slice2).multiThreaded().forEachPixel(
     	    (o, a, b) -> {
     	        o.set(a.getRealFloat() / b.getRealFloat());
     	    }
