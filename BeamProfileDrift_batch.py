@@ -1,4 +1,4 @@
-import BeamProfileDriftCorrection
+from singleMoleculeBiophysics.ImageCorrections import BeamProfileDriftCorrection
 from ij import IJ
 import net.imagej.ImageJ as c
 import net.imglib2.img.display.imagej.ImageJFunctions as ijf;
@@ -33,7 +33,7 @@ files = os.listdir(inputFolder)
 
 corr = BeamProfileDriftCorrection(c().getContext())		#initialize PlugIn
 corr.setSigma(60.0)										#set sigma value for Gaussian blur
-corr.setDarkframe(400.0)								#set value for subtraction of dark "baseline"
+corr.setDarkframe(2348.0)								#set value for subtraction of dark "baseline"
 for f in files:
 	seriesCount = initializeFile(inputFolder+f)
 	for s in range(seriesCount):
