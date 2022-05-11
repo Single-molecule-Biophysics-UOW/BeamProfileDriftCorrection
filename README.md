@@ -1,5 +1,6 @@
 # BeamProfileDriftCorrection
-ImageJ plugIn for BeamProfile and Drift correction
+ImageJ plugIn for BeamProfile and Drift correction of 2D time series. The algorithm is described in the supplementary information to our paper
+[Rapid single-molecule characterisation of nucleic-acid enzymes](https://doi.org/10.1101/2022.03.03.482895). 
 
 ## Install:
 
