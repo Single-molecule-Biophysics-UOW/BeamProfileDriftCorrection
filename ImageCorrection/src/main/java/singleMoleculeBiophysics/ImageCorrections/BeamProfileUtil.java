@@ -21,6 +21,7 @@ import net.imglib2.algorithm.stats.Normalize;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.loops.ListUtils;
 import net.imglib2.loops.LoopBuilder;
 import net.imglib2.type.NativeType;
@@ -61,7 +62,7 @@ public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
     	//the a result img is allocated by making a facotry for it
     	//the assumed order is XYCZT, => time is always last, the caller needs to make sure it exists!
     	int Tindex = input.numDimensions()-1;
-    	ArrayImgFactory<T> fac = new ArrayImgFactory<T>(input.randomAccess().get());
+    	CellImgFactory<T> fac = new CellImgFactory<T>(input.randomAccess().get());
     	//the dimension of the z-projection depends on the input. It is the same as one isolated time frame of the input    	    
     	IntervalView<T> slice0 = Views.hyperSlice(input,Tindex, 0);//.dimensions(dim0); collapse in T dimension
     	long[] dim0 = new long[slice0.numDimensions()];
@@ -72,7 +73,7 @@ public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
     	return target;    		
     }
     public <T extends RealType<T>& NativeType<T>> RandomAccessibleInterval<T> blur(RandomAccessibleInterval<T> input,double sigma){            
-        ArrayImgFactory<T> fac = new ArrayImgFactory<T>(input.randomAccess().get());    	    	
+        CellImgFactory<T> fac = new CellImgFactory<T>(input.randomAccess().get());    	    	
         long[] dim = new long[input.numDimensions()];
     	input.dimensions(dim);
         Img<T> target = fac.create(dim);        	        	
@@ -82,7 +83,7 @@ public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
     	return target;       	
 }
     public <T extends RealType<T>& NativeType<T>> RandomAccessibleInterval<T> blur(Img<T> input,double sigma){            
-        ArrayImgFactory<T> fac = new ArrayImgFactory<T>(input.randomAccess().get());    	    	
+        CellImgFactory<T> fac = new CellImgFactory<T>(input.randomAccess().get());    	    	
         long[] dim = new long[input.numDimensions()];
     	input.dimensions(dim);
         Img<T> target = fac.create(dim);        	        	

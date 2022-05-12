@@ -20,6 +20,7 @@ import net.imglib2.RealRandomAccessible;
 import net.imglib2.algorithm.fft2.FFTConvolution;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.interpolation.randomaccess.NLinearInterpolatorFactory;
 import net.imglib2.realtransform.AffineGet;
@@ -75,7 +76,7 @@ public class DriftUtil<T extends RealType<T> & NativeType<T>> {
 		long[] dim = new long[slice0.numDimensions()];	
 		slice0.dimensions(dim);
 		logger.info("dimensions of slice0:"+Arrays.toString(dim));	
-		ArrayImgFactory<T> referenceFac = new ArrayImgFactory<>(slice0.firstElement());
+		CellImgFactory<T> referenceFac = new CellImgFactory<>(slice0.firstElement());
 		RandomAccessibleInterval<T> referenceImg = referenceFac.create(dim);
 		Images.copy(slice0, referenceImg);
 		//and make it iterable:
@@ -85,7 +86,7 @@ public class DriftUtil<T extends RealType<T> & NativeType<T>> {
 		//the kernel needs to be normalized to not add "energy" to the image		
 		
 		RandomAccessibleInterval<DoubleType> normslice0 = normalize(reference);
-		net.imglib2.algorithm.fft2.FFTConvolution FFTConv = new FFTConvolution(reference,normslice0,new ArrayImgFactory<>(new ComplexDoubleType()),convService);			
+		net.imglib2.algorithm.fft2.FFTConvolution FFTConv = new FFTConvolution(reference,normslice0,new CellImgFactory<>(new ComplexDoubleType()),convService);			
 		long[] refDim = reference.dimensionsAsLongArray();
 		long[] kernelDim = normslice0.dimensionsAsLongArray();
 			
