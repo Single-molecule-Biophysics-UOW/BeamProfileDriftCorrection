@@ -18,7 +18,6 @@ import net.imagej.ops.OpService;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.ImagePlusAdapter;
 import net.imglib2.img.Img;
-import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.cell.CellImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.loops.LoopBuilder;
@@ -147,7 +146,11 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		// first I do the darkframeCorr, so I only do it on the whole stack once, the
 		// blur etc is then corrected already.
 		RandomAccessibleInterval<FloatType> corr_img = util.subtract(img, darkframe);
+
 		logger.info("subtracted darkframe");
+
+		ImageJFunctions.show(corr_img).setTitle("darkframe");
+
 		// now do z projection, if no frames, no projection necessary
 		//if the beamProfile is not stationary over time there should be a projection as well.
 		Img<FloatType> proj_corr_Img;
