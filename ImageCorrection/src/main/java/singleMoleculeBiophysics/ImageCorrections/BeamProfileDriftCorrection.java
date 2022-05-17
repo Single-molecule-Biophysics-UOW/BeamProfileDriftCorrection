@@ -35,7 +35,7 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	@Parameter(type = ItemIO.OUTPUT, label = "result")
 	private RandomAccessibleInterval<FloatType> result;
 	@Parameter(type = ItemIO.OUTPUT, label = "resultImg")
-	private Img<FloatType> resultImg;
+	private RandomAccessibleInterval<FloatType> resultImg;
 	@Parameter(label = "darkframe")
 	float darkframe = 2348;
 	@Parameter(label = "sigma")
@@ -94,7 +94,7 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 	public boolean getStationaryProfile() {
 		return stationaryProfile;
 	}
-	public Img<FloatType> getResult() {
+	public RandomAccessibleInterval<FloatType> getResult() {
 		return resultImg;
 	}
 	public double getMaxShift() {
@@ -126,12 +126,12 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		
 		//TODO Add some magic code here that cleans up the dimensions if they are wrong
 		
-		//if (nFrames == 1 & nSlices > 1){
+		if (nFrames == 1 & nSlices > 1){
 			//z and t are probably switched, through warning and switch back
-			//logger.warn("it appears like z and t-dimension is swapped. I t will be swapped for correction");
-			//nFrames = nSlices;
-		//	nSlices = 1;
-	//	}
+			logger.warn("it appears like z and t-dimension is swapped. I t will be swapped for correction");
+			nFrames = nSlices;
+			nSlices = 1;
+		}
 		//if (nFrames == 1 & nChannels > 3){
 			//z and t are probably switched, through warning and switch back
 		//	logger.warn("it appears like color and t-dimension is swapped. I t will be swapped for correction");
@@ -143,30 +143,54 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 		
 		BeamProfileUtil<FloatType> util = new BeamProfileUtil<FloatType>(con);
 		final Img<T> img = ImagePlusAdapter.wrap(input);
-		// first I do the darkframeCorr, so I only do it on the whole stack once, the
-		// blur etc is then corrected already.
+		System.out.print("wrapped input");
+		//now subtract darkframe
 		RandomAccessibleInterval<FloatType> corr_img = util.subtract(img, darkframe);
-
-		logger.info("subtracted darkframe");
-
-		ImageJFunctions.show(corr_img).setTitle("darkframe");
+		System.out.print("subtracted df");
+		//logger.info("subtracted darkframe");
+		
+//		ImageJFunctions.show(corr_img).setTitle("darkframe");
 
 		// now do z projection, if no frames, no projection necessary
 		//if the beamProfile is not stationary over time there should be a projection as well.
-		Img<FloatType> proj_corr_Img;
+//		Img<FloatType> proj_corr_Img;
+		
+		boolean state = getStationaryProfile();
+		logger.info("state=" + state);
+		logger.info("nFrames="+nFrames);
+		//let's blur first, then zproj.
+		
 		if (nFrames > 1 & stationaryProfile == true) {
-			proj_corr_Img = util.zprojOpFunction(corr_img);		
-		} else {
-			proj_corr_Img = ImgBuilder(corr_img);
-		}
+			corr_img = util.zprojOpFunction(corr_img);
+//			ImageJFunctions.show(proj_corr_Img).setTitle("zproj");
+			logger.info("made zprojection");			
+		} 
+//		else {
+//			logger.info("did not make zprojection");
+//			RandomAccessibleInterval<FloatType> blurImg = util.blur(corr_img, sigma);
+//			result = blurImg;
+//			//proj_corr_Img = ImgBuilder(corr_img);
+//		}
+		System.out.print("blur stack now:");
+		Img<FloatType> stackBlur = ImgBuilder(corr_img);
+		util.blurStack(stackBlur, nChannels, nFrames, sigma);
+		
+		logger.info("ran the blur");
+		
+		
+		//resultImg = stackBlur;
 		// now blur the projection
-		RandomAccessibleInterval<FloatType> blurImg = util.blur(proj_corr_Img, sigma);
+//		resultImg = ImgBuilder(corr_img);
+		
 		// normalize the blurred image:
-		util.normMultiChannel2(blurImg, nChannels);
-		// create new image for result
+		util.normMultiChannel2(stackBlur, nChannels);
+//		// create new image for result
 		CellImgFactory<FloatType> fac = new CellImgFactory<FloatType>(corr_img.randomAccess().get());
 		RandomAccessibleInterval<FloatType> div_output = fac.create(img.dimensionsAsLongArray());
-		RandomAccessibleInterval<FloatType> beamProfileCorr = util.divideStackbyStack(corr_img, blurImg, div_output,nFrames);
+//		System.out.print("try to divide stack by stack now");
+//		
+		RandomAccessibleInterval<FloatType> beamProfileCorr = util.divideStackbyStack(util.subtract(img, darkframe), stackBlur, div_output,nFrames);
+		resultImg = beamProfileCorr;
 		logger.info("finished beamProfileCorrection, do the drift now");
 		// now do drift correction, but only if there are actually frames:
 		if (nFrames > 1) {
@@ -177,7 +201,7 @@ public class BeamProfileDriftCorrection<T extends RealType<T> & NativeType<T>> i
 			resultImg = ImgBuilder(driftCorr);
 		} else {
 			//logger.info("no drift needed");
-			result = beamProfileCorr;
+			resultImg = beamProfileCorr;
 		} 
 		logger.info("beamprofile and drift correction finished after" + (System.currentTimeMillis()-startRun));		
 	}

@@ -5,25 +5,34 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.StringJoiner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.scijava.Context;
 import org.scijava.log.LogService;
 import org.scijava.log.Logger;
 import org.scijava.plugin.Parameter;
 
+import net.imagej.ops.OpEnvironment;
 import net.imagej.ops.OpService;
 import net.imagej.ops.Ops;
+import net.imagej.ops.Ops.Filter;
+import net.imagej.ops.Ops.Filter.Gauss;
 import net.imagej.ops.special.computer.Computers;
 import net.imagej.ops.special.computer.UnaryComputerOp;
+import net.imagej.util.Images;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.algorithm.fft2.FFTConvolution;
 import net.imglib2.algorithm.gauss3.Gauss3;
 import net.imglib2.algorithm.stats.Normalize;
 import net.imglib2.converter.Converters;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
+import net.imglib2.img.basictypeaccess.AccessFlags;
 import net.imglib2.img.cell.CellImg;
 import net.imglib2.img.cell.CellImgFactory;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.img.sparse.NtreeImg;
 import net.imglib2.img.sparse.NtreeImgFactory;
 import net.imglib2.loops.ListUtils;
@@ -32,12 +41,17 @@ import net.imglib2.type.NativeType;
 import net.imglib2.type.Type;
 import net.imglib2.type.numeric.ComplexType;
 import net.imglib2.type.numeric.RealType;
+import net.imglib2.type.numeric.complex.ComplexDoubleType;
+import net.imglib2.type.numeric.real.DoubleType;
 import net.imglib2.type.numeric.real.FloatType;
 import net.imglib2.util.Intervals;
 import net.imglib2.view.IntervalView;
 import net.imglib2.view.Views;
 import net.imglib2.Dimensions;
 import net.imglib2.Interval;
+import net.imglib2.IterableInterval;
+import net.imglib2.Point;
+import net.imglib2.RandomAccessible;
 
 public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
 	@Parameter		//do they need to be parameters? or just fields?
@@ -61,6 +75,7 @@ public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
 					new FloatType());	
 		return cor;
 	    }
+	
     public Img<T> zprojOpFunction(final RandomAccessibleInterval<T> input){
     	
     	//the a result img is allocated by making a facotry for it
@@ -90,16 +105,91 @@ public class BeamProfileUtil<T extends RealType<T> & NativeType<T>> {
     	Gauss3.gauss(Sigma, Views.extendMirrorSingle(input), target);
     	return target;       	
 }
+    public <T extends RealType<T>& NativeType<T>> RandomAccessibleInterval<T> blur(RandomAccessibleInterval<T> input,double sigma, boolean noOut){            
+        //CellImgFactory<T> fac = new CellImgFactory<T>(input.randomAccess().get());    	    	
+        long[] dim = new long[input.numDimensions()];
+        System.out.print(dim.length);
+    	//input.dimensions(dim);
+        //Img<T> target = fac.create(dim);        	        	
+        double[] Sigma= new double[] {sigma,sigma};  
+        //final ArrayList<RandomAccessibleInterval<T>> resultList = new ArrayList<RandomAccessibleInterval<T>>();                	
+    	Gauss3.gauss(Sigma, Views.extendMirrorSingle(input), input); 
+    	return input;
+}
+    
     public <T extends RealType<T>& NativeType<T>> RandomAccessibleInterval<T> blur(Img<T> input,double sigma){            
         CellImgFactory<T> fac = new CellImgFactory<T>(input.randomAccess().get());    	    	
         long[] dim = new long[input.numDimensions()];
     	input.dimensions(dim);
-        Img<T> target = fac.create(dim);        	        	
+        Img<T> target = fac.create(dim);     	        	
         double[] Sigma= new double[] {sigma,sigma};  
         //final ArrayList<RandomAccessibleInterval<T>> resultList = new ArrayList<RandomAccessibleInterval<T>>();                	
     	Gauss3.gauss(Sigma, Views.extendMirrorSingle(input), target);
     	return target;       	
 }
+    /**
+	 * Copy the contents of an source {@link RandomAccessible} in an
+	 * interval defined by and target {@link RandomAccessibleInterval}
+	 * into that target {@link RandomAccessibleInterval}.
+	 *
+	 * @param <T>
+	 * @param source
+	 * @param target
+	 */
+    public static <T extends Type<T>> void copy(
+			final RandomAccessible<? extends T> source,
+			final RandomAccessibleInterval<T> target) {
+
+		Views.flatIterable(Views.interval(Views.pair(source, target), target)).forEach(
+				pair -> pair.getB().set(pair.getA()));
+	}
+	public void blurStack(
+			RandomAccessibleInterval<T>inputStack, int nChannels, int nFrames, double sigma) {
+			
+			//make a stack of same dimensions as input:
+			//ArrayImgFactory<T> shiftFac = new ArrayImgFactory<>(inputStack.getAt(0));
+			//RandomAccessibleInterval<T> shiftStack = shiftFac.create(inputStack.dimensionsAsLongArray());
+			int Tindex = inputStack.numDimensions()-1;
+			long[] dim = new long[inputStack.numDimensions()];
+
+			
+			
+			System.out.print(Tindex);
+			System.out.print(Arrays.toString(dim));
+			//if(nChannels == 1){		       	    				
+				
+				
+				//logger.info("stack has channels");
+				
+				//loop through Stack:
+				//make array to hold the slices
+			ArrayImgFactory<T> sliceFac =new ArrayImgFactory<T>(inputStack.randomAccess().get());
+			Img<T> blurred_slice = sliceFac.create(Views.hyperSlice(inputStack, Tindex, 0));
+				for (int i=0;i<nFrames;i++) {
+//					System.out.print(i);
+					
+					
+					//logger.info("looping through stack");
+					//blur the slice:
+//					ImageJFunctions.show(Views.hyperSlice(inputStack, Tindex, i)).setTitle("current slice to lbur");
+					Gauss3.gauss(sigma, Views.extendMirrorSingle(Views.hyperSlice(inputStack, Tindex, i)), blurred_slice);
+//					System.out.print("blurred frame "+i);
+					
+					copy(blurred_slice, Views.hyperSlice(inputStack,Tindex,i));
+//					ImageJFunctions.show(Views.hyperSlice(inputStack,Tindex,i));
+				}
+				//put back in a stack:				
+
+			//}
+			
+			
+			//else{		       	    				
+				
+				//TODO
+			//}
+			
+			
+		}
     public < T extends Comparable< T > & Type< T > > void computeMinMax(
     		final Iterable< T > input, final T min, final T max )
     	{

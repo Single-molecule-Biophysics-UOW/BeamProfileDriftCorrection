@@ -6,7 +6,7 @@ public class Test {
 	        // create the ImageJ application context with all available services
 	        System.out.print("start launch");
 	        ImageJ ij = new net.imagej.ImageJ();
-	        System.out.print("created ImageJ instance");
+
 	        ij.ui().showUI();
 
 
