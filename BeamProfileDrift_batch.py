@@ -30,7 +30,8 @@ print("start")
 inputFolder = IJ.getDirectory("choose Folder with raw Data")#"C:/Users/stefa/OneDrive - University of Wollongong/"
 outputFolder = IJ.getDirectory("choose folder to save results")
 #inputFolder = "C:/Users/stefa/OneDrive/Desktop/beamProfileTest/testdata/2color_stack/"
-files = [x for x in os.listdir(inputFolder) if x.endswith('.tif')==True]
+
+files = [x for x in os.listdir(inputFolder) if x.endswith('.nd2')==True]
 corr = BeamProfileDriftCorrection(c().getContext())		#initialize PlugIn
 corr.setSigma(60.0)										#set sigma value for Gaussian blur
 corr.setDarkframe(2348.0)								#set value for subtraction of dark "baseline"
